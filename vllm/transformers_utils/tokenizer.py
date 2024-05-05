@@ -1,10 +1,11 @@
 import os
 from typing import Optional, Union
 
+import huggingface_hub
 from transformers import (AutoTokenizer, PreTrainedTokenizer,
                           PreTrainedTokenizerFast)
 
-from vllm.config import VLLM_USE_MODELSCOPE
+from vllm.envs import VLLM_USE_MODELSCOPE
 from vllm.logger import init_logger
 from vllm.lora.request import LoRARequest
 from vllm.transformers_utils.tokenizers import BaichuanTokenizer
@@ -76,8 +77,9 @@ def get_tokenizer(
                 model_id=tokenizer_name,
                 cache_dir=download_dir,
                 revision=revision,
+                local_files_only=huggingface_hub.constants.HF_HUB_OFFLINE,
                 # Ignore weights - we only need the tokenizer.
-                ignore_file_pattern=["*.pt", "*.safetensors", "*.bin"])
+                ignore_file_pattern=[".*.pt", ".*.safetensors", ".*.bin"])
             tokenizer_name = tokenizer_path
 
     if tokenizer_mode == "slow":
@@ -138,9 +140,8 @@ def get_lora_tokenizer(lora_request: LoRARequest, *args,
         # No tokenizer was found in the LoRA folder,
         # use base model tokenizer
         logger.warning(
-            f"No tokenizer found in {lora_request.lora_local_path}, "
-            "using base model tokenizer instead. "
-            f"(Exception: {str(e)})")
+            "No tokenizer found in %s, using base model tokenizer instead. "
+            "(Exception: %s)", lora_request.lora_local_path, e)
         tokenizer = None
     return tokenizer
 
