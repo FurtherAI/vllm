@@ -171,7 +171,6 @@ def test_models(
         inp = {"dtype": "image", "image": image}
         hf_outputs.append(hf_model.embed(inp).tolist())
 
-    print(f'{vllm_outputs[0][:10]}')
     # print(f'Tensor diff')
     # print(f'{(torch.tensor(vllm_outputs[0]) - torch.tensor(hf_outputs[0])).abs().mean()}')
     # print(f'{(torch.tensor(vllm_outputs[1]) - torch.tensor(hf_outputs[1])).abs().mean()}')

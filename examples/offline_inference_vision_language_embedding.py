@@ -6,7 +6,7 @@ image = ImageAsset("cherry_blossom").pil_image.convert("RGB")
 prompt = ("<|im_start|>system\nYou are a helpful assistant.<|im_end|>\n"
           "<|im_start|>user\n<|vision_start|><|image_pad|><|vision_end|>"
           "What is shown in this image?<|im_end|>\n"
-          "<|im_start|>assistant\n")
+          "<|im_start|>assistant\n<|endoftext|>")
 
 # Create an LLM.
 llm = LLM(
