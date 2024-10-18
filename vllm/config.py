@@ -246,9 +246,11 @@ class ModelConfig:
 
         # TODO: Allow the same model architecture to be specified as either
         # generation or embedding model
-        if "Phi3VForCausalLM" in architectures:
+        print(f'architectures, config.py: {architectures}.')
+        if "Phi3VForCausalLM" in architectures or "Qwen2VLForConditionalGeneration" in architectures:
             # Match both remote and local names
-            embedding_mode = "/VLM2Vec" in self.model
+            embedding_mode = "/VLM2Vec" in self.model or "/dse-qwen2-2b-mrl-v1" in self.model
+            print(f'config.py embedding_mode: {embedding_mode}, {self.model}')
         else:
             embedding_mode = ModelRegistry.is_embedding_model(architectures)
 
