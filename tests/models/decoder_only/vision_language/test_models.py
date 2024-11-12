@@ -94,7 +94,7 @@ VLM_TEST_SETTINGS = {
             ),
             limit_mm_per_prompt={"image": 4},
         )],
-        marks=[pytest.mark.core_model],
+        marks=[pytest.mark.core_model, pytest.mark.cpu_model],
     ),
     "paligemma": VLMTestInfo(
         models=["google/paligemma-3b-mix-224"],
@@ -111,7 +111,8 @@ VLM_TEST_SETTINGS = {
             "pixel_values"
         ),
         vllm_output_post_proc=model_utils.paligemma_vllm_to_hf_output,
-        dtype="half" if current_platform.is_rocm() else ("half", "float"),
+        dtype=("half" if current_platform.is_cpu() or current_platform.is_rocm()
+               else ("half", "float")),
         marks=[pytest.mark.core_model],
     ),
     "qwen2_vl": VLMTestInfo(
@@ -128,7 +129,7 @@ VLM_TEST_SETTINGS = {
         max_num_seqs=2,
         auto_cls=AutoModelForVision2Seq,
         vllm_output_post_proc=model_utils.qwen2_vllm_to_hf_output,
-        marks=[pytest.mark.core_model],
+        marks=[pytest.mark.core_model, pytest.mark.cpu_model],
         image_size_factors=[(), (0.25,), (0.25, 0.25, 0.25), (0.25, 0.2, 0.15)],
     ),
     #### Extended model tests
@@ -172,7 +173,6 @@ VLM_TEST_SETTINGS = {
         use_tokenizer_eos=True,
         vllm_output_post_proc=model_utils.fuyu_vllm_to_hf_output,
         num_logprobs=10,
-        dtype="bfloat16" if current_platform.is_cpu() else "half",
         image_size_factors=[(), (0.25,), (0.25, 0.25, 0.25), (0.25, 0.2, 0.15)],
     ),
     "glm4": VLMTestInfo(
@@ -186,6 +186,23 @@ VLM_TEST_SETTINGS = {
         get_stop_token_ids=lambda tok: [151329, 151336, 151338],
         marks=[large_gpu_mark(min_gb=48)],
         patch_hf_runner=model_utils.glm_patch_hf_runner,
+    ),
+    "h2ovl": VLMTestInfo(
+        models = [
+            "h2oai/h2ovl-mississippi-800m",
+            "h2oai/h2ovl-mississippi-2b",
+        ],
+        test_type=(VLMTestType.IMAGE, VLMTestType.MULTI_IMAGE),
+        prompt_formatter=lambda img_prompt: f"<|prompt|>{img_prompt}<|end|><|answer|>", # noqa: E501
+        single_image_prompts=IMAGE_ASSETS.prompts({
+            "stop_sign": "<image>\nWhat's the content in the center of the image?",  # noqa: E501
+            "cherry_blossom": "<image>\nWhat is the season?",
+        }),
+        multi_image_prompt="Image-1: <image>\nImage-2: <image>\nDescribe the two images in short.",  # noqa: E501
+        max_model_len=8192,
+        dtype="bfloat16",
+        use_tokenizer_eos=True,
+        patch_hf_runner=model_utils.h2ovl_patch_hf_runner,
     ),
     "intern_vl": VLMTestInfo(
         models=[
@@ -228,7 +245,6 @@ VLM_TEST_SETTINGS = {
         models=["llava-hf/llava-onevision-qwen2-0.5b-ov-hf"],
         test_type=VLMTestType.CUSTOM_INPUTS,
         prompt_formatter=lambda vid_prompt: f"<|im_start|>user\n{vid_prompt}<|im_end|>\n<|im_start|>assistant\n",   # noqa: E501
-        dtype="half",
         num_video_frames=16,
         max_model_len=16384,
         postprocess_inputs=model_utils.get_key_type_post_processor(
@@ -310,6 +326,22 @@ VLM_TEST_SETTINGS = {
         vllm_output_post_proc=model_utils.qwen_vllm_to_hf_output,
         prompt_path_encoder=model_utils.qwen_prompt_path_encoder,
     ),
+    "idefics3": VLMTestInfo(
+        models=["HuggingFaceM4/Idefics3-8B-Llama3"],
+        test_type=(VLMTestType.IMAGE, VLMTestType.MULTI_IMAGE),
+        prompt_formatter=lambda img_prompt:f"<|begin_of_text|>User:{img_prompt}<end_of_utterance>\nAssistant:",  # noqa: E501
+        img_idx_to_prompt=lambda idx: "<image>",
+        max_model_len=8192,
+        max_num_seqs=2,
+        auto_cls=AutoModelForVision2Seq,
+        marks=[
+            pytest.mark.skipif(
+                transformers.__version__ < "4.46.0",
+                reason="Model introduced in HF >= 4.46.0"
+            ),
+            large_gpu_mark(min_gb=48),
+        ],
+    ),
     ### Tensor parallel / multi-gpu broadcast tests
     "broadcast-chameleon": VLMTestInfo(
         models=["facebook/chameleon-7b"],
@@ -371,7 +403,6 @@ VLM_TEST_SETTINGS = {
         prompt_formatter=lambda img_prompt: f"<|im_start|>User\n{img_prompt}<|im_end|>\n<|im_start|>Assistant\n", # noqa: E501
         test_type=VLMTestType.CUSTOM_INPUTS,
         max_model_len=4096,
-        dtype="bfloat16" if current_platform.is_cpu() else "half",
         use_tokenizer_eos=True,
         patch_hf_runner=model_utils.internvl_patch_hf_runner,
         custom_test_opts=[
@@ -386,7 +417,6 @@ VLM_TEST_SETTINGS = {
         test_type=VLMTestType.CUSTOM_INPUTS,
         max_model_len=16384,
         max_num_seqs=2,
-        dtype="half",
         postprocess_inputs=model_utils.get_key_type_post_processor(
             "pixel_values"
         ),
